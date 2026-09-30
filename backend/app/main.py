@@ -1,8 +1,14 @@
 from fastapi import FastAPI
 
-app = FastAPI(title="ApplyTrack API")
+from app.api.applications import router as applications_router
+
+app = FastAPI(
+    title="JobTrack API",
+)
+
+app.include_router(applications_router)
 
 
 @app.get("/")
 def root():
-    return {"message": "ApplyTrack API is running"}
+    return {"message": "JobTrack API is running"}
