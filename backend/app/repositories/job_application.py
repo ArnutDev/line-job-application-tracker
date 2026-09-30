@@ -53,6 +53,20 @@ def get_applications(
 
     return list(db.scalars(statement).all())
 
+def update_application(
+    db: Session,
+    application: JobApplication,
+    data: dict,
+) -> JobApplication:
+
+    for field, value in data.items():
+        if value is not None:
+            setattr(application, field, value)
+
+    db.commit()
+    db.refresh(application)
+
+    return application
 
 def delete_application(
     db: Session,
@@ -60,3 +74,4 @@ def delete_application(
 ) -> None:
     db.delete(application)
     db.commit()
+
