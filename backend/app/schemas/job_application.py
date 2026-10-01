@@ -51,3 +51,54 @@ class JobApplicationResponse(BaseModel):
     model_config = {
         "from_attributes": True
     }
+
+
+class JobApplicationFilterParams(BaseModel):
+    status: str | None = None
+    company: str | None = None
+    position: str | None = None
+    work_mode: str | None = None
+    date_from: date | None = None
+    date_to: date | None = None
+
+
+class JobApplicationSummaryResponse(BaseModel):
+    total: int
+    by_status: dict[str, int]
+    applications: list[JobApplicationResponse]
+
+
+QUERY_JOB_APPLICATIONS_TOOL = {
+    "name": "query_job_applications",
+    "description": "ค้นหาและสรุปข้อมูลการสมัครงาน",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "status": {
+                "type": "string",
+                "description": "กรองตามสถานะ",
+            },
+            "company": {
+                "type": "string",
+                "description": "กรองตามบริษัท",
+            },
+            "position": {
+                "type": "string",
+                "description": "กรองตามตำแหน่ง",
+            },
+            "work_mode": {
+                "type": "string",
+                "enum": ["onsite", "hybrid", "remote", "unknown"],
+                "description": "กรองตามรูปแบบการทำงาน",
+            },
+            "date_from": {
+                "type": "string",
+                "description": "วันที่เริ่มต้น YYYY-MM-DD",
+            },
+            "date_to": {
+                "type": "string",
+                "description": "วันที่สิ้นสุด YYYY-MM-DD",
+            },
+        },
+    },
+}

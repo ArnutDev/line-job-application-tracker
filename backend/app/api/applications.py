@@ -1,6 +1,7 @@
+from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
@@ -8,6 +9,7 @@ from app.repositories import job_application as repository
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationResponse,
+    JobApplicationSummaryResponse,
     JobApplicationUpdate,
 )
 
@@ -43,14 +45,72 @@ def create_application(
     response_model=list[JobApplicationResponse],
 )
 def get_applications(
+    status: str | None = Query(default=None, description="กรองตามสถานะ"),
+    company: str | None = Query(default=None, description="กรองตามบริษัท"),
+    position: str | None = Query(default=None, description="กรองตามตำแหน่ง"),
+    work_mode: str | None = Query(
+        default=None,
+        description="กรองตามรูปแบบการทำงาน (onsite, hybrid, remote, unknown)",
+    ),
+    date_from: date | None = Query(default=None, description="วันที่เริ่มต้น YYYY-MM-DD"),
+    date_to: date | None = Query(default=None, description="วันที่สิ้นสุด YYYY-MM-DD"),
     db: Session = Depends(get_db),
 ):
     user_id = UUID("00000000-0000-0000-0000-000000000001")
 
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(
+            status_code=400,
+            detail="date_from must not be greater than date_to",
+        )
+
     return repository.get_applications(
         db=db,
         user_id=user_id,
+        status=status,
+        company=company,
+        position=position,
+        work_mode=work_mode,
+        date_from=date_from,
+        date_to=date_to,
     )
+
+
+@router.get(
+    "/summary",
+    response_model=JobApplicationSummaryResponse,
+)
+def get_application_summary(
+    status: str | None = Query(default=None, description="กรองตามสถานะ"),
+    company: str | None = Query(default=None, description="กรองตามบริษัท"),
+    position: str | None = Query(default=None, description="กรองตามตำแหน่ง"),
+    work_mode: str | None = Query(
+        default=None,
+        description="กรองตามรูปแบบการทำงาน (onsite, hybrid, remote, unknown)",
+    ),
+    date_from: date | None = Query(default=None, description="วันที่เริ่มต้น YYYY-MM-DD"),
+    date_to: date | None = Query(default=None, description="วันที่สิ้นสุด YYYY-MM-DD"),
+    db: Session = Depends(get_db),
+):
+    user_id = UUID("00000000-0000-0000-0000-000000000001")
+
+    if date_from and date_to and date_from > date_to:
+        raise HTTPException(
+            status_code=400,
+            detail="date_from must not be greater than date_to",
+        )
+
+    return repository.get_application_summary(
+        db=db,
+        user_id=user_id,
+        status=status,
+        company=company,
+        position=position,
+        work_mode=work_mode,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
 
 
 @router.get(
