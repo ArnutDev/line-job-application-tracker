@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
 from app.core.config import settings
-from app.services import line_messaging, user_resolver
+from app.services import intent_dispatcher, line_messaging, user_resolver
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +81,11 @@ async def line_webhook(
                 )
 
                 if reply_token:
-                    reply_text = (
-                        f"JobTrack ได้รับข้อความ: '{user_text}' แล้วครับ\n"
-                        f"(เชื่อมต่อ LINE Webhook สำเร็จ 🎉)"
+                    # Process user message with LLM and dispatch intent
+                    reply_text = await intent_dispatcher.dispatch_user_message(
+                        db=db,
+                        user_id=user_id,
+                        user_message=user_text,
                     )
                     await line_messaging.reply_text_message(
                         reply_token=reply_token,
@@ -91,4 +93,5 @@ async def line_webhook(
                     )
 
     return {"status": "ok"}
+
 

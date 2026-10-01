@@ -150,7 +150,8 @@ class TestLineWebhook(unittest.IsolatedAsyncioTestCase):
         mock_request = MagicMock(spec=Request)
         mock_request.body = AsyncMock(return_value=body_bytes)
 
-        with patch("app.api.webhook.settings.line_channel_secret", self.secret):
+        with patch("app.api.webhook.settings.line_channel_secret", self.secret), \
+             patch("app.api.webhook.line_messaging.reply_text_message", new_callable=AsyncMock) as mock_reply:
             response = await line_webhook(
                 request=mock_request,
                 x_line_signature=signature,
@@ -158,6 +159,8 @@ class TestLineWebhook(unittest.IsolatedAsyncioTestCase):
             )
 
         self.assertEqual(response, {"status": "ok"})
+        mock_reply.assert_called_once()
+
 
         # Verify user was automatically created and resolved in the database
         user = user_repo.get_user_by_line_id(self.session, line_user_id)
