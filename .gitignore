@@ -1,0 +1,21 @@
+# Virtual environment
+.venv/
+env/
+venv/
+
+# Byte-compiled / cache
+**/__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# IDEs
+.vscode/
+.idea/
+
+# Testing
+.pytest_cache/
