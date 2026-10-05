@@ -19,3 +19,7 @@ venv/
 
 # Testing
 .pytest_cache/
+
+# Agent & AI configuration
+AGENTS.md
+agents.md
