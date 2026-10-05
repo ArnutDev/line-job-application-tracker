@@ -48,10 +48,57 @@ def _send_line_reply_sync(reply_token: str, messages: list[dict], access_token: 
         return False
 
 
-async def reply_messages(reply_token: str, messages: list[dict]) -> bool:
+def build_default_quick_reply() -> dict:
+    """Build default Quick Reply buttons for convenient user interaction."""
+    return {
+        "items": [
+            {
+                "type": "action",
+                "action": {
+                    "type": "message",
+                    "label": "📋 รายการสมัคร",
+                    "text": "ดูรายการสมัครงานทั้งหมด",
+                },
+            },
+            {
+                "type": "action",
+                "action": {
+                    "type": "message",
+                    "label": "📊 สรุปสถิติ",
+                    "text": "สรุปข้อมูลการสมัครงาน",
+                },
+            },
+            {
+                "type": "action",
+                "action": {
+                    "type": "message",
+                    "label": "📥 ส่งออก Excel",
+                    "text": "ขอ export ไฟล์ excel",
+                },
+            },
+            {
+                "type": "action",
+                "action": {
+                    "type": "message",
+                    "label": "➕ บันทึกงาน",
+                    "text": "ต้องการบันทึกการสมัครงานใหม่",
+                },
+            },
+        ]
+    }
+
+
+async def reply_messages(
+    reply_token: str,
+    messages: list[dict],
+    include_quick_reply: bool = True,
+) -> bool:
     """Send a list of LINE message objects back to LINE Messaging API."""
     if not reply_token or not messages:
         return False
+
+    if include_quick_reply and "quickReply" not in messages[-1]:
+        messages[-1]["quickReply"] = build_default_quick_reply()
 
     return await asyncio.to_thread(
         _send_line_reply_sync,
@@ -61,7 +108,11 @@ async def reply_messages(reply_token: str, messages: list[dict]) -> bool:
     )
 
 
-async def reply_text_message(reply_token: str, text: str) -> bool:
+async def reply_text_message(
+    reply_token: str,
+    text: str,
+    include_quick_reply: bool = True,
+) -> bool:
     """Send a plain text reply message back to LINE Messaging API."""
     if not reply_token or not text:
         return False
@@ -73,7 +124,7 @@ async def reply_text_message(reply_token: str, text: str) -> bool:
         }
     ]
 
-    return await reply_messages(reply_token, messages)
+    return await reply_messages(reply_token, messages, include_quick_reply=include_quick_reply)
 
 
 def _format_file_size(size_bytes: int) -> str:
