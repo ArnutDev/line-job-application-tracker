@@ -203,10 +203,4 @@ python -m unittest discover tests
 ```text
 Ran 31 tests in 1.100s
 OK
-```
-
----
-
-## 📄 ใบอนุญาต (License)
-
-โปรเจกต์นี้เปิดให้ใช้งานและพัฒนาต่อได้ภายใต้ [MIT License](LICENSE)
+```
