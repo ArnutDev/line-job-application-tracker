@@ -110,7 +110,7 @@ class TestExportService(unittest.IsolatedAsyncioTestCase):
             response.headers["Content-Disposition"],
         )
 
-    @patch("app.services.gemini_service.parse_intent_with_gemini")
+    @patch("app.services.groq_service.parse_intent_with_groq")
     async def test_export_intent_dispatcher(self, mock_parse):
         repo.create_application(self.session, self.user_a_id, {
             "company": "LINE Man",

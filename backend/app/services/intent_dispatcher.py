@@ -8,7 +8,7 @@ from app.core import security
 from app.core.config import settings
 from app.models.job_application import ApplicationStatus
 from app.repositories import job_application as repo
-from app.services import export_service, gemini_service
+from app.services import export_service, groq_service
 
 logger = logging.getLogger(__name__)
 
@@ -216,10 +216,10 @@ async def dispatch_user_message(
     user_message: str,
     base_url: str | None = None,
 ) -> dict:
-    """Takes user natural language message, parses intent with Gemini,
+    """Takes user natural language message, parses intent with Groq (gpt-oss-20b),
     executes authorized application operations, and returns a structured response dict.
     """
-    intent_result = await gemini_service.parse_intent_with_gemini(user_message)
+    intent_result = await groq_service.parse_intent_with_groq(user_message)
 
     if intent_result.get("type") == "text":
         return {
