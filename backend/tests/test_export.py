@@ -158,6 +158,26 @@ class TestExportService(unittest.IsolatedAsyncioTestCase):
         expired_token = security.create_export_token(self.user_a_id, secret, expires_in=-10)
         self.assertIsNone(security.verify_export_token(expired_token, secret))
 
+    def test_build_file_download_flex_message(self):
+        from app.services.line_messaging import build_file_download_flex_message
+
+        flex = build_file_download_flex_message(
+            title="job_applications.xlsx",
+            file_size=12500,
+            download_url="https://test.ngrok.app/applications/export?token=abc",
+        )
+
+        self.assertEqual(flex["type"], "flex")
+        self.assertIn("job_applications.xlsx", flex["altText"])
+        contents = flex["contents"]
+        self.assertEqual(contents["type"], "bubble")
+        self.assertEqual(contents["header"]["backgroundColor"], "#107C41")
+        # Check action in button
+        button_action = contents["footer"]["contents"][0]["action"]
+        self.assertEqual(button_action["type"], "uri")
+        self.assertIn("openExternalBrowser=1", button_action["uri"])
+        self.assertIn("https://test.ngrok.app/applications/export?token=abc", button_action["uri"])
+
 
 if __name__ == "__main__":
     unittest.main()

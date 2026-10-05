@@ -76,6 +76,112 @@ async def reply_text_message(reply_token: str, text: str) -> bool:
     return await reply_messages(reply_token, messages)
 
 
+def _format_file_size(size_bytes: int) -> str:
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{max(1, round(size_bytes / 1024))} KB"
+    else:
+        return f"{round(size_bytes / (1024 * 1024), 1)} MB"
+
+
+def build_file_download_flex_message(
+    title: str,
+    file_size: int,
+    download_url: str,
+    description: str | None = None,
+) -> dict:
+    """Build a rich LINE Flex Message bubble with a direct download button."""
+    size_str = _format_file_size(file_size)
+    browser_url = download_url
+    if "openExternalBrowser=1" not in browser_url:
+        sep = "&" if "?" in browser_url else "?"
+        browser_url = f"{browser_url}{sep}openExternalBrowser=1"
+
+    return {
+        "type": "flex",
+        "altText": f"📥 ดาวน์โหลดไฟล์ {title} ({size_str}): {browser_url}",
+        "contents": {
+            "type": "bubble",
+            "header": {
+                "type": "box",
+                "layout": "vertical",
+                "backgroundColor": "#107C41",
+                "paddingTop": "15px",
+                "paddingBottom": "15px",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": "📊 JobTrack Export",
+                        "weight": "bold",
+                        "color": "#FFFFFF",
+                        "size": "sm",
+                    }
+                ],
+            },
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "md",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": title,
+                        "weight": "bold",
+                        "size": "lg",
+                        "wrap": True,
+                    },
+                    {
+                        "type": "text",
+                        "text": description
+                        or "ไฟล์ Excel รวบรวมข้อมูลการสมัครงานของคุณ จัดรูปแบบพร้อมใช้งานครับ",
+                        "size": "sm",
+                        "color": "#666666",
+                        "wrap": True,
+                    },
+                    {"type": "separator"},
+                    {
+                        "type": "box",
+                        "layout": "horizontal",
+                        "contents": [
+                            {
+                                "type": "text",
+                                "text": "ขนาดไฟล์",
+                                "size": "xs",
+                                "color": "#999999",
+                            },
+                            {
+                                "type": "text",
+                                "text": size_str,
+                                "size": "xs",
+                                "color": "#333333",
+                                "align": "end",
+                            },
+                        ],
+                    },
+                ],
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "button",
+                        "style": "primary",
+                        "color": "#107C41",
+                        "height": "sm",
+                        "action": {
+                            "type": "uri",
+                            "label": "📥 ดาวน์โหลด Excel",
+                            "uri": browser_url,
+                        },
+                    }
+                ],
+            },
+        },
+    }
+
+
 async def reply_file_message(
     reply_token: str,
     title: str,
@@ -83,7 +189,7 @@ async def reply_file_message(
     download_url: str,
     text: str | None = None,
 ) -> bool:
-    """Send a native downloadable file message (e.g. XLSX) back to LINE chat."""
+    """Send an interactive download card (LINE Flex Message) back to LINE chat."""
     if not reply_token or not download_url:
         return False
 
@@ -91,12 +197,12 @@ async def reply_file_message(
     if text:
         messages.append({"type": "text", "text": text})
 
-    messages.append({
-        "type": "file",
-        "title": title,
-        "fileSize": file_size,
-        "originalContentUrl": download_url,
-    })
+    flex_msg = build_file_download_flex_message(
+        title=title,
+        file_size=file_size,
+        download_url=download_url,
+    )
+    messages.append(flex_msg)
 
     return await reply_messages(reply_token, messages)
 

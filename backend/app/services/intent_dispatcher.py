@@ -206,7 +206,7 @@ def _handle_export(db: Session, user_id: UUID, args: dict, base_url: str | None 
         "title": "job_applications.xlsx",
         "file_size": file_size,
         "download_url": download_url,
-        "text": f"📊 รวบรวมข้อมูลการสมัครงานทั้งหมด {count} รายการ เรียบร้อยแล้วครับ ส่งไฟล์ Excel ให้ตามนี้ครับ 📄",
+        "text": f"📊 รวบรวมข้อมูลการสมัครงานทั้งหมด {count} รายการ เรียบร้อยแล้วครับ กดดาวน์โหลดไฟล์ Excel ได้ที่ปุ่มด้านล่างครับ 👇",
     }
 
 
