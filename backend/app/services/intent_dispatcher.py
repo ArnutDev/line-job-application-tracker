@@ -4,11 +4,14 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
+from app.core import security
+from app.core.config import settings
 from app.models.job_application import ApplicationStatus
 from app.repositories import job_application as repo
-from app.services import gemini_service
+from app.services import export_service, gemini_service
 
 logger = logging.getLogger(__name__)
+
 
 
 def _parse_date(date_str: str | None) -> date | None:
@@ -172,7 +175,7 @@ def _handle_delete(db: Session, user_id: UUID, args: dict) -> str:
     return f"🗑️ ลบข้อมูลการสมัครงานบริษัท '{comp_name}' ({pos_name}) เรียบร้อยแล้วครับ"
 
 
-def _handle_export(db: Session, user_id: UUID, args: dict) -> str:
+def _handle_export(db: Session, user_id: UUID, args: dict, base_url: str | None = None) -> dict:
     applications = repo.get_applications(
         db=db,
         user_id=user_id,
@@ -183,24 +186,46 @@ def _handle_export(db: Session, user_id: UUID, args: dict) -> str:
 
     count = len(applications)
     if count == 0:
-        return "📋 ไม่พบข้อมูลการสมัครงานตามเงื่อนไขที่ระบุสำหรับส่งออกเป็นไฟล์ Excel ครับ"
+        return {
+            "type": "text",
+            "text": "📋 ไม่พบข้อมูลการสมัครงานตามเงื่อนไขที่ระบุสำหรับส่งออกเป็นไฟล์ Excel ครับ",
+        }
 
-    return (
-        f"📊 พบข้อมูลการสมัครงานทั้งหมด {count} รายการ\n"
-        f"📥 คุณสามารถดาวน์โหลดไฟล์ Excel (.xlsx) ได้ที่ Endpoint:\n"
-        f"/applications/export\n\n"
-        f"💡 ไฟล์ประกอบด้วยข้อมูล วันที่สมัคร, บริษัท, ตำแหน่ง, สถานะ, เงินเดือน, รูปแบบงาน และโน้ต จัดรูปแบบเรียบร้อยครับ"
-    )
+    # Generate Excel in-memory to get exact byte length
+    file_stream = export_service.export_applications_to_xlsx(applications)
+    file_size = len(file_stream.getvalue())
+
+    secret = settings.line_channel_secret or "jobtrack-secret"
+    token = security.create_export_token(user_id, secret)
+
+    base = base_url.rstrip("/") if base_url else "http://localhost:8000"
+    download_url = f"{base}/applications/export?token={token}"
+
+    return {
+        "type": "file",
+        "title": "job_applications.xlsx",
+        "file_size": file_size,
+        "download_url": download_url,
+        "text": f"📊 รวบรวมข้อมูลการสมัครงานทั้งหมด {count} รายการ เรียบร้อยแล้วครับ ส่งไฟล์ Excel ให้ตามนี้ครับ 📄",
+    }
 
 
-async def dispatch_user_message(db: Session, user_id: UUID, user_message: str) -> str:
+async def dispatch_user_message(
+    db: Session,
+    user_id: UUID,
+    user_message: str,
+    base_url: str | None = None,
+) -> dict:
     """Takes user natural language message, parses intent with Gemini,
-    executes authorized application operations, and returns a formatted response.
+    executes authorized application operations, and returns a structured response dict.
     """
     intent_result = await gemini_service.parse_intent_with_gemini(user_message)
 
     if intent_result.get("type") == "text":
-        return intent_result.get("text", "")
+        return {
+            "type": "text",
+            "text": intent_result.get("text", ""),
+        }
 
     if intent_result.get("type") == "function_call":
         func_name = intent_result.get("name")
@@ -208,18 +233,19 @@ async def dispatch_user_message(db: Session, user_id: UUID, user_message: str) -
         logger.info(f"Executing intent function '{func_name}' for user {user_id}")
 
         if func_name == "create_job_application":
-            return _handle_create(db, user_id, args)
+            return {"type": "text", "text": _handle_create(db, user_id, args)}
         elif func_name == "query_job_applications":
-            return _handle_query(db, user_id, args)
+            return {"type": "text", "text": _handle_query(db, user_id, args)}
         elif func_name == "update_job_application":
-            return _handle_update(db, user_id, args)
+            return {"type": "text", "text": _handle_update(db, user_id, args)}
         elif func_name == "delete_job_application":
-            return _handle_delete(db, user_id, args)
+            return {"type": "text", "text": _handle_delete(db, user_id, args)}
         elif func_name == "export_applications":
-            return _handle_export(db, user_id, args)
+            return _handle_export(db, user_id, args, base_url=base_url)
         else:
             logger.warning(f"Unsupported function call '{func_name}'")
-            return "ขออภัยครับ ระบบยังไม่รองรับคำสั่งนี้ในขณะนี้"
+            return {"type": "text", "text": "ขออภัยครับ ระบบยังไม่รองรับคำสั่งนี้ในขณะนี้"}
 
-    return "ขออภัยครับ ไม่สามารถประมวลผลข้อความได้ในขณะนี้"
+    return {"type": "text", "text": "ขออภัยครับ ไม่สามารถประมวลผลข้อความได้ในขณะนี้"}
+
 

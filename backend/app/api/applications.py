@@ -1,12 +1,15 @@
 from datetime import date
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
+from app.core import security
+from app.core.config import settings
 from app.repositories import job_application as repository
+
 from app.schemas.job_application import (
     JobApplicationCreate,
     JobApplicationResponse,
@@ -117,6 +120,7 @@ def get_application_summary(
 
 @router.get("/export")
 def export_applications(
+    token: str | None = Query(default=None, description="Signed export authorization token"),
     status: str | None = Query(default=None, description="กรองตามสถานะ"),
     company: str | None = Query(default=None, description="กรองตามบริษัท"),
     position: str | None = Query(default=None, description="กรองตามตำแหน่ง"),
@@ -128,9 +132,26 @@ def export_applications(
     date_to: date | None = Query(default=None, description="วันที่สิ้นสุด YYYY-MM-DD"),
     db: Session = Depends(get_db),
 ):
-    user_id = UUID("00000000-0000-0000-0000-000000000001")
+    if isinstance(token, str) and token.strip():
+        secret = settings.line_channel_secret or "jobtrack-secret"
+        verified_user_id = security.verify_export_token(token.strip(), secret)
+        if not verified_user_id:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or expired export token",
+            )
+        user_id = verified_user_id
+    else:
+        user_id = UUID("00000000-0000-0000-0000-000000000001")
 
-    if date_from and date_to and date_from > date_to:
+    clean_status = status if isinstance(status, str) else None
+    clean_company = company if isinstance(company, str) else None
+    clean_position = position if isinstance(position, str) else None
+    clean_work_mode = work_mode if isinstance(work_mode, str) else None
+    clean_date_from = date_from if isinstance(date_from, date) else None
+    clean_date_to = date_to if isinstance(date_to, date) else None
+
+    if clean_date_from and clean_date_to and clean_date_from > clean_date_to:
         raise HTTPException(
             status_code=400,
             detail="date_from must not be greater than date_to",
@@ -139,25 +160,29 @@ def export_applications(
     applications = repository.get_applications(
         db=db,
         user_id=user_id,
-        status=status,
-        company=company,
-        position=position,
-        work_mode=work_mode,
-        date_from=date_from,
-        date_to=date_to,
+        status=clean_status,
+        company=clean_company,
+        position=clean_position,
+        work_mode=clean_work_mode,
+        date_from=clean_date_from,
+        date_to=clean_date_to,
     )
 
+
     file_stream = export_service.export_applications_to_xlsx(applications)
+    content = file_stream.getvalue()
 
     headers = {
         "Content-Disposition": "attachment; filename=job_applications.xlsx",
+        "Content-Length": str(len(content)),
     }
 
-    return StreamingResponse(
-        file_stream,
+    return Response(
+        content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers=headers,
     )
+
 
 
 @router.get(

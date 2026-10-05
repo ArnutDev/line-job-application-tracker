@@ -47,12 +47,13 @@ class TestIntentDispatcher(unittest.IsolatedAsyncioTestCase):
             },
         }
 
-        response_text = await intent_dispatcher.dispatch_user_message(
+        result = await intent_dispatcher.dispatch_user_message(
             db=self.session,
             user_id=self.user_a_id,
             user_message="สมัครงาน KBank ตำแหน่ง Backend Developer เงินเดือน 45000",
         )
 
+        response_text = result["text"]
         self.assertIn("บันทึกการสมัครงานสำเร็จ", response_text)
         self.assertIn("KBank", response_text)
         self.assertIn("Backend Developer", response_text)
@@ -85,12 +86,13 @@ class TestIntentDispatcher(unittest.IsolatedAsyncioTestCase):
             "args": {},
         }
 
-        response_text = await intent_dispatcher.dispatch_user_message(
+        result = await intent_dispatcher.dispatch_user_message(
             db=self.session,
             user_id=self.user_a_id,
             user_message="สรุปงานทั้งหมดที่สมัครหน่อย",
         )
 
+        response_text = result["text"]
         self.assertIn("พบทั้งหมด 2 รายการ", response_text)
         self.assertIn("SCB", response_text)
         self.assertIn("Agoda", response_text)
@@ -112,12 +114,13 @@ class TestIntentDispatcher(unittest.IsolatedAsyncioTestCase):
             },
         }
 
-        response_text = await intent_dispatcher.dispatch_user_message(
+        result = await intent_dispatcher.dispatch_user_message(
             db=self.session,
             user_id=self.user_a_id,
             user_message="ผ่านคัดเลือก LINE Man แล้วครับ",
         )
 
+        response_text = result["text"]
         self.assertIn("อัปเดตข้อมูลเรียบร้อย", response_text)
         self.assertIn("ผ่านการคัดเลือก", response_text)
 
@@ -141,12 +144,13 @@ class TestIntentDispatcher(unittest.IsolatedAsyncioTestCase):
             },
         }
 
-        response_text = await intent_dispatcher.dispatch_user_message(
+        result = await intent_dispatcher.dispatch_user_message(
             db=self.session,
             user_id=self.user_a_id,
             user_message="ลบงาน OldCompany ให้หน่อย",
         )
 
+        response_text = result["text"]
         self.assertIn("ลบข้อมูลการสมัครงานบริษัท 'OldCompany'", response_text)
 
         # Verify deleted
@@ -161,13 +165,13 @@ class TestIntentDispatcher(unittest.IsolatedAsyncioTestCase):
             "text": greeting,
         }
 
-        response_text = await intent_dispatcher.dispatch_user_message(
+        result = await intent_dispatcher.dispatch_user_message(
             db=self.session,
             user_id=self.user_a_id,
             user_message="สวัสดีครับ บอททำอะไรได้บ้าง",
         )
 
-        self.assertEqual(response_text, greeting)
+        self.assertEqual(result["text"], greeting)
 
     @patch("app.services.gemini_service.parse_intent_with_gemini")
     async def test_user_isolation_prevent_cross_user_update(self, mock_parse):
@@ -187,13 +191,15 @@ class TestIntentDispatcher(unittest.IsolatedAsyncioTestCase):
             },
         }
 
-        response_text = await intent_dispatcher.dispatch_user_message(
+        result = await intent_dispatcher.dispatch_user_message(
             db=self.session,
             user_id=self.user_a_id,
             user_message="ลบงาน PrivateCorp ให้หน่อย",
         )
 
+        response_text = result["text"]
         self.assertIn("ไม่พบรายการสมัครงานที่บริษัท 'PrivateCorp'", response_text)
+
 
         # Verify User B's application was NOT deleted
         apps_b = repo.get_applications(self.session, self.user_b_id)

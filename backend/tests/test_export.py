@@ -124,15 +124,41 @@ class TestExportService(unittest.IsolatedAsyncioTestCase):
             "args": {},
         }
 
-        response_text = await intent_dispatcher.dispatch_user_message(
+        result = await intent_dispatcher.dispatch_user_message(
             db=self.session,
             user_id=self.user_a_id,
             user_message="ขอ export ข้อมูลการสมัครงานเป็น excel หน่อยครับ",
+            base_url="https://test.ngrok.app",
         )
 
-        self.assertIn("พบข้อมูลการสมัครงานทั้งหมด 1 รายการ", response_text)
-        self.assertIn("/applications/export", response_text)
+        self.assertEqual(result["type"], "file")
+        self.assertEqual(result["title"], "job_applications.xlsx")
+        self.assertGreater(result["file_size"], 0)
+        self.assertIn("https://test.ngrok.app/applications/export?token=", result["download_url"])
+        self.assertIn("รวบรวมข้อมูลการสมัครงานทั้งหมด 1 รายการ", result["text"])
+
+    def test_export_token_security(self):
+        from app.core import security
+
+        secret = "super_secret_channel_key"
+        token = security.create_export_token(self.user_a_id, secret, expires_in=10)
+
+        # Valid token
+        verified_id = security.verify_export_token(token, secret)
+        self.assertEqual(verified_id, self.user_a_id)
+
+        # Tampered token
+        tampered = token + "xyz"
+        self.assertIsNone(security.verify_export_token(tampered, secret))
+
+        # Wrong secret
+        self.assertIsNone(security.verify_export_token(token, "wrong_secret"))
+
+        # Expired token
+        expired_token = security.create_export_token(self.user_a_id, secret, expires_in=-10)
+        self.assertIsNone(security.verify_export_token(expired_token, secret))
 
 
 if __name__ == "__main__":
     unittest.main()
+

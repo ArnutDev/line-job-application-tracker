@@ -81,17 +81,34 @@ async def line_webhook(
                 )
 
                 if reply_token:
+                    # Detect public base URL (handling ngrok and reverse proxies)
+                    proto = request.headers.get("x-forwarded-proto", request.url.scheme)
+                    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
+                    base_url = f"{proto}://{host}"
+
                     # Process user message with LLM and dispatch intent
-                    reply_text = await intent_dispatcher.dispatch_user_message(
+                    dispatch_result = await intent_dispatcher.dispatch_user_message(
                         db=db,
                         user_id=user_id,
                         user_message=user_text,
-                    )
-                    await line_messaging.reply_text_message(
-                        reply_token=reply_token,
-                        text=reply_text,
+                        base_url=base_url,
                     )
 
+                    if dispatch_result.get("type") == "file":
+                        await line_messaging.reply_file_message(
+                            reply_token=reply_token,
+                            title=dispatch_result["title"],
+                            file_size=dispatch_result["file_size"],
+                            download_url=dispatch_result["download_url"],
+                            text=dispatch_result.get("text"),
+                        )
+                    else:
+                        await line_messaging.reply_text_message(
+                            reply_token=reply_token,
+                            text=dispatch_result.get("text", ""),
+                        )
+
     return {"status": "ok"}
+
 
 

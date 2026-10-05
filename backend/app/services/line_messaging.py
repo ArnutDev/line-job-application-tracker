@@ -48,6 +48,19 @@ def _send_line_reply_sync(reply_token: str, messages: list[dict], access_token: 
         return False
 
 
+async def reply_messages(reply_token: str, messages: list[dict]) -> bool:
+    """Send a list of LINE message objects back to LINE Messaging API."""
+    if not reply_token or not messages:
+        return False
+
+    return await asyncio.to_thread(
+        _send_line_reply_sync,
+        reply_token,
+        messages,
+        settings.line_channel_access_token,
+    )
+
+
 async def reply_text_message(reply_token: str, text: str) -> bool:
     """Send a plain text reply message back to LINE Messaging API."""
     if not reply_token or not text:
@@ -60,9 +73,30 @@ async def reply_text_message(reply_token: str, text: str) -> bool:
         }
     ]
 
-    return await asyncio.to_thread(
-        _send_line_reply_sync,
-        reply_token,
-        messages,
-        settings.line_channel_access_token,
-    )
+    return await reply_messages(reply_token, messages)
+
+
+async def reply_file_message(
+    reply_token: str,
+    title: str,
+    file_size: int,
+    download_url: str,
+    text: str | None = None,
+) -> bool:
+    """Send a native downloadable file message (e.g. XLSX) back to LINE chat."""
+    if not reply_token or not download_url:
+        return False
+
+    messages = []
+    if text:
+        messages.append({"type": "text", "text": text})
+
+    messages.append({
+        "type": "file",
+        "title": title,
+        "fileSize": file_size,
+        "originalContentUrl": download_url,
+    })
+
+    return await reply_messages(reply_token, messages)
+
