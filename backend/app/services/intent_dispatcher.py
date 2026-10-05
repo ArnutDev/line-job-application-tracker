@@ -172,6 +172,27 @@ def _handle_delete(db: Session, user_id: UUID, args: dict) -> str:
     return f"🗑️ ลบข้อมูลการสมัครงานบริษัท '{comp_name}' ({pos_name}) เรียบร้อยแล้วครับ"
 
 
+def _handle_export(db: Session, user_id: UUID, args: dict) -> str:
+    applications = repo.get_applications(
+        db=db,
+        user_id=user_id,
+        status=args.get("status"),
+        company=args.get("company"),
+        position=args.get("position"),
+    )
+
+    count = len(applications)
+    if count == 0:
+        return "📋 ไม่พบข้อมูลการสมัครงานตามเงื่อนไขที่ระบุสำหรับส่งออกเป็นไฟล์ Excel ครับ"
+
+    return (
+        f"📊 พบข้อมูลการสมัครงานทั้งหมด {count} รายการ\n"
+        f"📥 คุณสามารถดาวน์โหลดไฟล์ Excel (.xlsx) ได้ที่ Endpoint:\n"
+        f"/applications/export\n\n"
+        f"💡 ไฟล์ประกอบด้วยข้อมูล วันที่สมัคร, บริษัท, ตำแหน่ง, สถานะ, เงินเดือน, รูปแบบงาน และโน้ต จัดรูปแบบเรียบร้อยครับ"
+    )
+
+
 async def dispatch_user_message(db: Session, user_id: UUID, user_message: str) -> str:
     """Takes user natural language message, parses intent with Gemini,
     executes authorized application operations, and returns a formatted response.
@@ -194,8 +215,11 @@ async def dispatch_user_message(db: Session, user_id: UUID, user_message: str) -
             return _handle_update(db, user_id, args)
         elif func_name == "delete_job_application":
             return _handle_delete(db, user_id, args)
+        elif func_name == "export_applications":
+            return _handle_export(db, user_id, args)
         else:
             logger.warning(f"Unsupported function call '{func_name}'")
             return "ขออภัยครับ ระบบยังไม่รองรับคำสั่งนี้ในขณะนี้"
 
     return "ขออภัยครับ ไม่สามารถประมวลผลข้อความได้ในขณะนี้"
+

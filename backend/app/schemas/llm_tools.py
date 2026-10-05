@@ -139,6 +139,28 @@ GEMINI_TOOLS = [
                     "required": ["company"],
                 },
             },
+            {
+                "name": "export_applications",
+                "description": "ส่งออกข้อมูลการสมัครงานเป็นไฟล์ Excel (XLSX) เพื่อนำไปเปิดในโปรแกรม Spreadsheet",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "status": {
+                            "type": "string",
+                            "description": "กรองตามสถานะ (ถ้าต้องการ)",
+                        },
+                        "company": {
+                            "type": "string",
+                            "description": "กรองตามบริษัท (ถ้าต้องการ)",
+                        },
+                        "position": {
+                            "type": "string",
+                            "description": "กรองตามตำแหน่ง (ถ้าต้องการ)",
+                        },
+                    },
+                },
+            },
         ]
     }
 ]
+
