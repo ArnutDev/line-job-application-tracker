@@ -98,6 +98,62 @@ class TestIntentDispatcher(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Agoda", response_text)
 
     @patch("app.services.groq_service.parse_intent_with_groq")
+    async def test_dispatch_application_summary(self, mock_parse):
+        repo.create_application(self.session, self.user_a_id, {
+            "company": "SCB",
+            "position": "Data Engineer",
+            "status": ApplicationStatus.INTERVIEWED,
+        })
+        repo.create_application(self.session, self.user_a_id, {
+            "company": "Agoda",
+            "position": "Software Engineer",
+            "status": ApplicationStatus.APPLIED,
+        })
+        repo.create_application(self.session, self.user_a_id, {
+            "company": "KBank",
+            "position": "Backend Developer",
+            "status": ApplicationStatus.ACCEPTED,
+        })
+
+        mock_parse.return_value = {
+            "type": "function_call",
+            "name": "get_application_summary",
+            "args": {},
+        }
+
+        result = await intent_dispatcher.dispatch_user_message(
+            db=self.session,
+            user_id=self.user_a_id,
+            user_message="สรุปสถิติการสมัครงานหน่อย",
+        )
+
+        response_text = result["text"]
+        self.assertIn("สถิติภาพรวมการสมัครงานของคุณ", response_text)
+        self.assertIn("ยื่นใบสมัครทั้งหมด: 3 งาน", response_text)
+        self.assertIn("📨 สมัครแล้ว: 1 งาน", response_text)
+        self.assertIn("💬 สัมภาษณ์แล้ว: 1 งาน", response_text)
+        self.assertIn("🎉 ผ่านการคัดเลือก: 1 งาน", response_text)
+        self.assertIn("อัตราก้าวหน้า (สัมภาษณ์/ผ่าน): 66.7%", response_text)
+        self.assertIn("พิมพ์ 'ดูรายการสมัคร' เพื่อดูรายละเอียดรายชื่อบริษัท", response_text)
+
+    @patch("app.services.groq_service.parse_intent_with_groq")
+    async def test_dispatch_application_summary_empty(self, mock_parse):
+        mock_parse.return_value = {
+            "type": "function_call",
+            "name": "get_application_summary",
+            "args": {},
+        }
+
+        result = await intent_dispatcher.dispatch_user_message(
+            db=self.session,
+            user_id=self.user_a_id,
+            user_message="สรุปสถิติหน่อย",
+        )
+
+        response_text = result["text"]
+        self.assertIn("ยังไม่มีข้อมูลการสมัครงานในระบบครับ", response_text)
+
+    @patch("app.services.groq_service.parse_intent_with_groq")
     async def test_dispatch_update_application(self, mock_parse):
         app = repo.create_application(self.session, self.user_a_id, {
             "company": "LINE Man",

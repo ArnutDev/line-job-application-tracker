@@ -71,7 +71,7 @@ def _handle_query(db: Session, user_id: UUID, args: dict) -> str:
     date_from = _parse_date(args.get("date_from"))
     date_to = _parse_date(args.get("date_to"))
 
-    summary = repo.get_application_summary(
+    applications = repo.get_applications(
         db=db,
         user_id=user_id,
         status=args.get("status"),
@@ -82,21 +82,85 @@ def _handle_query(db: Session, user_id: UUID, args: dict) -> str:
         date_to=date_to,
     )
 
-    total = summary["total"]
+    total = len(applications)
     if total == 0:
         return "📋 ไม่พบข้อมูลการสมัครงานตามเงื่อนไขที่ระบุครับ"
 
-    applications = summary["applications"]
-    lines = [f"📊 สรุปข้อมูลการสมัครงาน (พบทั้งหมด {total} รายการ):"]
+    lines = [f"📋 รายการสมัครงานของคุณ (พบทั้งหมด {total} รายการ):"]
 
     for idx, app in enumerate(applications[:10], 1):
         status_val = app.status.value if hasattr(app.status, "value") else str(app.status)
         date_val = str(app.date_applied) if app.date_applied else "-"
         lines.append(f"{idx}. {app.company} — {app.position}")
-        lines.append(f"   สถานะ: {status_val} | วันที่: {date_val}")
+        detail_parts = [f"📌 สถานะ: {status_val}"]
+        if app.salary:
+            detail_parts.append(f"💰 {app.salary}")
+        detail_parts.append(f"📅 {date_val}")
+        lines.append(f"   {' | '.join(detail_parts)}")
+        if app.note:
+            lines.append(f"   📝 โน้ต: {app.note}")
 
     if total > 10:
-        lines.append(f"...และอีก {total - 10} รายการ")
+        lines.append(f"...และอีก {total - 10} รายการ (พิมพ์ 'ขอ export ไฟล์ excel' เพื่อดูทั้งหมด)")
+
+    return "\n".join(lines)
+
+
+def _handle_summary(db: Session, user_id: UUID, args: dict) -> str:
+    date_from = _parse_date(args.get("date_from"))
+    date_to = _parse_date(args.get("date_to"))
+
+    summary = repo.get_application_summary(
+        db=db,
+        user_id=user_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
+
+    total = summary["total"]
+    if total == 0:
+        return (
+            "📊 ยังไม่มีข้อมูลการสมัครงานในระบบครับ "
+            "สามารถเริ่มต้นบันทึกได้เลย เช่น 'สมัครงาน KBank ตำแหน่ง Backend Developer'"
+        )
+
+    by_status = summary["by_status"]
+    status_emojis = {
+        "ยังไม่ได้สมัคร": "📝",
+        "สมัครแล้ว": "📨",
+        "กำลังคัดกรอง": "⏳",
+        "นัดสัมภาษณ์": "📅",
+        "สัมภาษณ์แล้ว": "💬",
+        "ผ่านการคัดเลือก": "🎉",
+        "ปฏิเสธแล้ว": "❌",
+        "ไม่มีการตอบกลับ": "🔕",
+    }
+
+    lines = [
+        "📊 สถิติภาพรวมการสมัครงานของคุณ",
+        "━━━━━━━━━━━━━━━━━━━",
+        f"📌 ยื่นใบสมัครทั้งหมด: {total} งาน",
+        "",
+        "สถานะการตอบรับ:",
+    ]
+
+    for st_name, count in by_status.items():
+        if count > 0:
+            emoji = status_emojis.get(st_name, "▫️")
+            lines.append(f"{emoji} {st_name}: {count} งาน")
+
+    # Funnel & Progress Rate
+    interview_count = by_status.get("นัดสัมภาษณ์", 0) + by_status.get("สัมภาษณ์แล้ว", 0)
+    passed_count = by_status.get("ผ่านการคัดเลือก", 0)
+    positive_count = interview_count + passed_count
+
+    if total > 0:
+        rate = (positive_count / total) * 100
+        lines.append("")
+        lines.append(f"💡 อัตราก้าวหน้า (สัมภาษณ์/ผ่าน): {rate:.1f}%")
+
+    lines.append("━━━━━━━━━━━━━━━━━━━")
+    lines.append("👉 พิมพ์ 'ดูรายการสมัคร' เพื่อดูรายละเอียดรายชื่อบริษัท")
 
     return "\n".join(lines)
 
@@ -236,6 +300,8 @@ async def dispatch_user_message(
             return {"type": "text", "text": _handle_create(db, user_id, args)}
         elif func_name == "query_job_applications":
             return {"type": "text", "text": _handle_query(db, user_id, args)}
+        elif func_name == "get_application_summary":
+            return {"type": "text", "text": _handle_summary(db, user_id, args)}
         elif func_name == "update_job_application":
             return {"type": "text", "text": _handle_update(db, user_id, args)}
         elif func_name == "delete_job_application":

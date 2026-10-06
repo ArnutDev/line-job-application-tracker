@@ -59,7 +59,7 @@ GROQ_TOOLS = [
         "type": "function",
         "function": {
             "name": "query_job_applications",
-            "description": "ค้นหาและสรุปข้อมูลการสมัครงาน ดูรายการงานทั้งหมด หรือดูสรุปสถิติตามเงื่อนไข",
+            "description": "ค้นหาและดูรายการการสมัครงาน แสดงรายละเอียดรายชื่อบริษัท ตำแหน่งงาน วันที่สมัคร และสถานะ",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -87,6 +87,26 @@ GROQ_TOOLS = [
                     "date_to": {
                         "type": ["string", "null"],
                         "description": "วันที่สิ้นสุด YYYY-MM-DD",
+                    },
+                },
+            },
+        },
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_application_summary",
+            "description": "ดูสถิติภาพรวมและสรุปผลการสมัครงาน เช่น จำนวนงานทั้งหมดที่สมัคร แจกแจงจำนวนงานตามแต่ละสถานะ (กำลังคัดกรอง, นัดสัมภาษณ์, ผ่านการคัดเลือก, ฯลฯ) และอัตราก้าวหน้า",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "date_from": {
+                        "type": ["string", "null"],
+                        "description": "วันที่เริ่มต้น YYYY-MM-DD (ถ้าต้องการกรองสรุปตามช่วงเวลา)",
+                    },
+                    "date_to": {
+                        "type": ["string", "null"],
+                        "description": "วันที่สิ้นสุด YYYY-MM-DD (ถ้าต้องการกรองสรุปตามช่วงเวลา)",
                     },
                 },
             },
