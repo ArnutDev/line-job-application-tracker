@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.api.dependencies import get_db
 from app.core.config import settings
-from app.services import intent_dispatcher, line_messaging, user_resolver
+from app.services import intent_dispatcher, line_messaging, rate_limiter, user_resolver
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +81,32 @@ async def line_webhook(
                 )
 
                 if reply_token:
+                    # Check for quota inquiry commands (free, does not consume quota)
+                    if rate_limiter.is_quota_inquiry(user_text):
+                        quota_info = rate_limiter.check_user_quota(
+                            db=db,
+                            user_id=user_id,
+                            line_user_id=line_user_id,
+                        )
+                        await line_messaging.reply_text_message(
+                            reply_token=reply_token,
+                            text=rate_limiter.format_quota_status(quota_info),
+                        )
+                        continue
+
+                    # Rate Limiting check & consume quota (Pre-LLM Gatekeeper)
+                    allowed, limit_msg = rate_limiter.consume_quota(
+                        db=db,
+                        user_id=user_id,
+                        line_user_id=line_user_id,
+                    )
+                    if not allowed:
+                        await line_messaging.reply_text_message(
+                            reply_token=reply_token,
+                            text=limit_msg,
+                        )
+                        continue
+
                     # Detect public base URL (handling ngrok and reverse proxies)
                     proto = request.headers.get("x-forwarded-proto", request.url.scheme)
                     host = request.headers.get("x-forwarded-host") or request.headers.get("host") or request.url.netloc
