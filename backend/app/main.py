@@ -15,3 +15,8 @@ app.include_router(webhook_router)
 @app.get("/")
 def root():
     return {"message": "JobTrack API is running"}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
