@@ -1,5 +1,5 @@
 from app.core.database import Base
-from app.models import User, JobApplication
+from app.models import User, JobApplication, UserDailyUsage
 from app.core.config import settings
 from logging.config import fileConfig
 
