@@ -1,4 +1,4 @@
-# 💼 JobTrack — LINE Job Application Tracker
+# 💼 Lazy Job Track — LINE Job Application Tracker
 
 [![Python](https://img.shields.io/badge/Python-3.12-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg)](https://fastapi.tiangolo.com/)
@@ -216,4 +216,4 @@ python -m unittest discover tests
 ```text
 Ran 45 tests in 1.400s
 OK
-```
+```
