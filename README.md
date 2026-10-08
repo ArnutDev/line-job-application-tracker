@@ -5,8 +5,20 @@
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-336791.svg)](https://www.postgresql.org/)
 [![Groq](https://img.shields.io/badge/Groq-openai%2Fgpt--oss--20b-f55036.svg)](https://groq.com/)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg)](https://www.docker.com/)
+[![LINE Friends](https://img.shields.io/badge/LINE-@583rijkh-00C300?logo=line&logoColor=white)](https://line.me/R/ti/p/@583rijkh)
 
 **JobTrack** คือระบบผู้ช่วยบันทึกและติดตามสถานะการสมัครงานผ่าน **LINE Chatbot** อัจฉริยะ ช่วยให้ผู้ใช้จัดการประวัติการสมัครงาน อัปเดตสถานะ ดูสถิติสรุป และส่งออกข้อมูลเป็นไฟล์ Excel (.xlsx) ได้ทันทีผ่านห้องแชต LINE โดยไม่ต้องเปิดสเปรดชีตจดเอง
+
+---
+
+## 📲 ทดลองใช้งานผ่าน LINE (Add Friend)
+
+เพิ่มเพื่อนเพื่อทดลองใช้งาน JobTrack ได้ทันที:
+- **LINE ID:** `@583rijkh`
+- **ลิงก์เพิ่มเพื่อน:** [https://line.me/R/ti/p/@583rijkh](https://line.me/R/ti/p/@583rijkh)
+- **โควต้าการใช้งาน:** สมาชิกทั่วไปใช้งานได้ **8 ข้อความ/วัน** (รีเซ็ตทุกเที่ยงคืน) สามารถพิมพ์ *"เช็คโควต้า"* ได้ตลอดเวลา
+
+[![Add Friend](https://scdn.line-apps.com/n/line_add_friends/btn/th.png)](https://line.me/R/ti/p/@583rijkh)
 
 ---
 
@@ -64,7 +76,7 @@ line-job-application-tracker/
 │   │   ├── services/       # Business Logic, Groq NLP, Export, LINE messaging
 │   │   └── main.py         # FastAPI App Entrypoint
 │   ├── alembic/            # Database Migrations
-│   ├── tests/              # Automated Test Suite (31 tests)
+│   ├── tests/              # Automated Test Suite (45 tests)
 │   ├── requirements.txt    # Python Dependencies
 │   ├── Dockerfile          # Backend Containerfile
 │   └── .env.example        # ตัวอย่าง Environment Variables
@@ -186,13 +198,14 @@ python scripts/setup_rich_menu.py --action create
 | **🗑️ ลบประวัติงาน** | *"ขอลบงานบริษัท SCB"* |
 | **📊 สรุปสถิติ** | *"สรุปสถิติการสมัครงานทั้งหมด"* |
 | **📥 ส่งออก Excel** | *"ขอ export ข้อมูลการสมัครงานเป็น excel"* |
+| **⚡ เช็คโควต้า** | *"เช็คโควต้า"* หรือ *"quota"* (จำกัด 8 ข้อความ/วัน) |
 | **👋 สนทนาทั่วไป** | *"สวัสดีครับ บอททำอะไรได้บ้าง"* |
 
 ---
 
 ## 🧪 การรันชุดทดสอบ (Automated Testing)
 
-โปรเจกต์มีชุดทดสอบครอบคลุมทุก Layer (Repository, Intent Dispatcher, Webhook, Security, Export, Groq LLM):
+โปรเจกต์มีชุดทดสอบครอบคลุมทุก Layer (Repository, Intent Dispatcher, Webhook, Security, Export, Groq LLM, Rate Limiter):
 
 ```bash
 cd backend
@@ -201,6 +214,6 @@ python -m unittest discover tests
 
 ผลการทดสอบ:
 ```text
-Ran 31 tests in 1.100s
+Ran 45 tests in 1.400s
 OK
 ```
