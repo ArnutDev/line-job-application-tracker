@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-20b"
     admin_line_user_ids: str = ""
-    daily_message_limit: int = 10
+    daily_message_limit: int = 8
 
     def is_unlimited_user(self, line_user_id: str) -> bool:
         """Check if a LINE user ID is configured as an unlimited / admin user."""
